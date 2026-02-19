@@ -1,8 +1,30 @@
 # Calculator API
 
-A minimal, well-validated REST API that performs arithmetic on integers. Built as a demonstration of a multi-agent AI build pipeline — the API was designed, reviewed for security, adversarially attacked, implemented, and black-box tested entirely by a team of specialized AI agents coordinated by an orchestrator. Zero Critical, High, or Medium issues remain after two build iterations.
+A four-endpoint REST API that performs integer arithmetic: addition, subtraction, multiplication, and integer floor division. It accepts JSON bodies, validates inputs strictly, and returns predictable JSON responses.
 
-The API is intentionally simple: four operations, strict integer-only inputs, predictable error shapes, and no moving parts. It is designed to serve as a stable backend contract for a future web interface.
+## How This Was Built
+
+This API was built autonomously by a team of six Claude AI agents coordinated by an Orchestrator — no human wrote any code or made any design decisions.
+
+| Agent | Role |
+|---|---|
+| **Orchestrator** | Managed workflow, enforced communication rules, routed work between agents |
+| **Architect** | Owned all design decisions, reviewed findings, wrote unambiguous instructions for the Developer |
+| **CISO** | Reviewed the spec and implementation for security vulnerabilities each iteration |
+| **Adversary** | Actively attacked the spec and implementation each iteration to find what others missed |
+| **Developer** | Implemented the API based solely on Architect instructions — never read test results or security reports |
+| **Tester** | Verified correctness via black-box HTTP testing only — never read the source code, only made HTTP requests and checked responses |
+
+The pipeline ran in two phases:
+
+1. **Pre-Build** — Architect reviewed the spec, CISO reviewed for security gaps, Adversary attacked the spec for logical weaknesses, Architect synthesized all findings into unambiguous Developer instructions.
+2. **Build & Verify (iterated)** — Developer built the API, CISO reviewed the code, Adversary attacked the implementation, Tester ran the full HTTP test suite, Architect evaluated all three reports and issued an ITERATE or COMPLETE decision.
+
+The build was considered complete only when the Tester reported zero Critical, High, or Medium failures **and** the CISO and Adversary post-build reports each contained zero Critical or High findings.
+
+### The One Bug Found
+
+The Adversary discovered that the divide-by-zero check used `path === '/divide'` — an exact string comparison — while Express normalizes routes for matching. Sending `POST /divide/` (trailing slash) or `POST /DIVIDE` with `b=0` bypassed the check entirely, returning HTTP 200 with `null` as the result (silent data corruption). The Tester's standard test suite did not catch this because it used the canonical path. The Adversary caught it in Iteration 1; it was fixed in Iteration 2 by moving the `b === 0` check directly into the `/divide` route handler, eliminating the path comparison entirely.
 
 ---
 
