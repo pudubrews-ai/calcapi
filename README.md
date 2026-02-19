@@ -54,3 +54,23 @@ curl -X POST http://localhost:3000/divide \
   -H "Content-Type: application/json" \
   -d '{"a": 10, "b": 0}'
 ```
+
+## True Acceptance Test (Process, Not Just API Output)
+The real pass condition for this project is the orchestration workflow in `prompt_codex.md`, not only endpoint correctness.
+
+Required process gates:
+- Use distinct role lanes (Architect, Developer, Tester, CISO, Adversary) with proper file boundaries.
+- Run black-box testing against `http://localhost:3000`.
+- Ship only when severity gate is satisfied:
+  - Critical = 0
+  - High = 0
+  - Medium = 0
+
+## How This Run Failed
+- A single-agent implementation pass was completed first, which failed the required multi-agent process test.
+- A later multi-agent rerun still ended with `ITERATE` (not `COMPLETE`) because tester reachability failed (`HTTP 000` in `reports/iteration-2/tester.md`).
+- Constraint handling was inconsistent: code was touched/reverted after direction to avoid code changes.
+
+See:
+- `reports/codex-failure-notes.md`
+- `reports/iteration-2/architect-eval.md`
