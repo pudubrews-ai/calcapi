@@ -45,11 +45,27 @@ npm install
 npm start
 ```
 
-The server listens on port 3000:
+The server defaults to port 3000. To use a custom port:
+
+```bash
+PORT=4567 npm start
+```
+
+The startup log confirms which port is active:
 
 ```
 Calculator API running on port 3000
 ```
+
+---
+
+## Web Interface
+
+The app includes a web interface accessible at `http://localhost:<PORT>/` (using whatever port the server is running on, e.g. `http://localhost:3000/`).
+
+The web interface is a single-page HTML file served statically from `public/index.html`. It lets you perform calculations directly in the browser without needing curl or any API client.
+
+The API endpoints remain at `/add`, `/subtract`, `/multiply`, and `/divide` (POST only) and are unchanged.
 
 ---
 

@@ -3,10 +3,15 @@
 const express = require('express');
 const app = express();
 
+const PORT = Number(process.env.PORT) || 3000;
+
 // 1. Disable X-Powered-By header (must be first)
 app.disable('x-powered-by');
 
-// 2. Content-Type validation middleware (BEFORE express.json())
+// 2. Serve static files from public/ (BEFORE Content-Type middleware)
+app.use(express.static(require('path').join(__dirname, 'public')));
+
+// 3. Content-Type validation middleware (BEFORE express.json())
 app.use((req, res, next) => {
   if (!req.is('application/json')) {
     return res.status(400).json({ error: 'Content-Type must be application/json' });
@@ -121,8 +126,8 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(3000, () => {
-  console.log('Calculator API running on port 3000');
+app.listen(PORT, () => {
+  console.log(`Calculator API running on port ${PORT}`);
 });
 
 module.exports = app;

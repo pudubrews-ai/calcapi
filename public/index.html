@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline';">
+  <title>Calculator</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f5f5f5;
+      color: #222;
+      margin: 0;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+    }
+
+    h1 {
+      margin: 0 0 1.5rem;
+      font-size: 1.75rem;
+      text-align: center;
+    }
+
+    .field {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      appearance: textfield;
+    }
+
+    input[type="number"]:focus {
+      outline: 2px solid #3b82f6;
+      border-color: #3b82f6;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin: 1.25rem 0;
+    }
+
+    button {
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button:hover:not(:disabled) {
+      background: #2563eb;
+    }
+
+    button:disabled {
+      background: #93c5fd;
+      cursor: not-allowed;
+    }
+
+    [data-testid="loading-indicator"] {
+      display: none;
+      text-align: center;
+      font-style: italic;
+      color: #555;
+      margin: 0.75rem 0;
+    }
+
+    [data-testid="result-display"] {
+      min-height: 2.5rem;
+      padding: 0.75rem;
+      border-radius: 4px;
+      background: #f0fdf4;
+      color: #166534;
+      font-weight: 600;
+      font-size: 1.05rem;
+      margin-top: 1rem;
+      word-break: break-word;
+    }
+
+    [data-testid="result-display"]:empty {
+      background: transparent;
+      padding: 0;
+      min-height: 0;
+    }
+
+    [data-testid="error-display"] {
+      min-height: 2.5rem;
+      padding: 0.75rem;
+      border-radius: 4px;
+      background: #fef2f2;
+      color: #991b1b;
+      font-weight: 600;
+      font-size: 1.05rem;
+      margin-top: 0.75rem;
+      word-break: break-word;
+    }
+
+    [data-testid="error-display"]:empty {
+      background: transparent;
+      padding: 0;
+      min-height: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Calculator</h1>
+
+    <div class="field">
+      <label for="input-a">Value a:</label>
+      <input type="number" id="input-a" data-testid="input-a" placeholder="Enter a number">
+    </div>
+
+    <div class="field">
+      <label for="input-b">Value b:</label>
+      <input type="number" id="input-b" data-testid="input-b" placeholder="Enter a number">
+    </div>
+
+    <div class="buttons">
+      <button data-testid="btn-add">Add</button>
+      <button data-testid="btn-subtract">Subtract</button>
+      <button data-testid="btn-multiply">Multiply</button>
+      <button data-testid="btn-divide">Divide</button>
+    </div>
+
+    <div data-testid="loading-indicator">Calculating...</div>
+
+    <div data-testid="result-display"></div>
+    <div data-testid="error-display"></div>
+  </div>
+
+  <script>
+    const inputA          = document.querySelector('[data-testid="input-a"]');
+    const inputB          = document.querySelector('[data-testid="input-b"]');
+    const btnAdd          = document.querySelector('[data-testid="btn-add"]');
+    const btnSubtract     = document.querySelector('[data-testid="btn-subtract"]');
+    const btnMultiply     = document.querySelector('[data-testid="btn-multiply"]');
+    const btnDivide       = document.querySelector('[data-testid="btn-divide"]');
+    const resultDisplay   = document.querySelector('[data-testid="result-display"]');
+    const errorDisplay    = document.querySelector('[data-testid="error-display"]');
+    const loadingIndicator = document.querySelector('[data-testid="loading-indicator"]');
+
+    const buttons = [btnAdd, btnSubtract, btnMultiply, btnDivide];
+    var isCalculating = false;
+
+    const symbols = {
+      add:      '+',
+      subtract: '-',
+      multiply: '*',
+      divide:   '/'
+    };
+
+    async function calculate(operation) {
+      if (isCalculating) return;
+      isCalculating = true;
+      // Clear displays immediately
+      resultDisplay.textContent = '';
+      errorDisplay.textContent  = '';
+
+      // Show loading indicator
+      loadingIndicator.style.display = 'block';
+
+      // Disable all buttons
+      buttons.forEach(function(btn) { btn.disabled = true; });
+
+      // Read inputs — send null for empty fields so the server returns its own error
+      var a = inputA.value === '' ? null : Number(inputA.value);
+      var b = inputB.value === '' ? null : Number(inputB.value);
+
+      try {
+        var response = await fetch('/' + operation, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ a: a, b: b })
+        });
+
+        var data = await response.json();
+
+        if (response.ok) {
+          var symbol = symbols[operation];
+          resultDisplay.textContent = data.operation + ': ' + data.a + ' ' + symbol + ' ' + data.b + ' = ' + data.result;
+        } else {
+          errorDisplay.textContent = data.error;
+        }
+      } catch (err) {
+        errorDisplay.textContent = 'Network error: Could not reach the server';
+      } finally {
+        loadingIndicator.style.display = 'none';
+        buttons.forEach(function(btn) { btn.disabled = false; });
+        isCalculating = false;
+      }
+    }
+
+    btnAdd.addEventListener('click',      function() { calculate('add'); });
+    btnSubtract.addEventListener('click', function() { calculate('subtract'); });
+    btnMultiply.addEventListener('click', function() { calculate('multiply'); });
+    btnDivide.addEventListener('click',   function() { calculate('divide'); });
+  </script>
+</body>
+</html>
